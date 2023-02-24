@@ -1,0 +1,28 @@
+---
+# tasks file for swarm
+- name: Init a new swarm with
+  community.docker.docker_swarm:
+    state: present
+  register: __swarm_facts
+  when: inventory_hostname in groups['swarm-managers'][0]
+
+# - name: debug
+#   debug:
+#     msg: "{{ hostvars[groups['swarm-managers'][0]]['ansible_default_ipv4']['address'] }}"
+#   when: inventory_hostname in groups['swarm-managers'][0]
+- name: Added manages nodes in swarm
+  community.docker.docker_swarm:
+    state: join
+    timeout: 60
+    join_token: "{{ hostvars[groups['swarm-managers'][0]]['__swarm_facts']['swarm_facts']['JoinTokens']['Manager'] }}"
+    remote_addrs: "{{ hostvars[groups['swarm-managers'][0]]['ansible_default_ipv4']['address'] }}"
+    # msg: "{{__swarm_facts}}[swarm_facts][JoinTokens]"
+  when: inventory_hostname in groups['swarm-managers'] and inventory_hostname not in groups['swarm-managers'][0]
+
+- name: Added workers in swarm
+  community.docker.docker_swarm:
+    state: join
+    timeout: 60
+    join_token: "{{ hostvars[groups['swarm-managers'][0]]['__swarm_facts']['swarm_facts']['JoinTokens']['Worker'] }}"
+    remote_addrs: "{{ hostvars[groups['swarm-managers'][0]]['ansible_default_ipv4']['address'] }}"
+  when: inventory_hostname in groups['swarm-workers']
